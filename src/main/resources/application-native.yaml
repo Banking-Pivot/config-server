@@ -1,0 +1,9 @@
+# Local development: serve the banking-config folder next to this project instead of the
+# git repository, so a change is visible on the next request without a commit or a push.
+# Relative to the working directory, which in the IDE is the config-server folder.
+spring:
+  cloud:
+    config:
+      server:
+        native:
+          search-locations: ${CONFIG_NATIVE_LOCATIONS:file:../banking-config/}

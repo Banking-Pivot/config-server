@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: config-server
+
+  # The only secret of the Config Server, the GitHub user and token of the git backend,
+  # comes from Vault (secret/config-server). It never serves secrets to the services: they
+  # read theirs from Vault themselves.
+  config:
+    import:
+      # Role ID and secret ID of this server's AppRole. In local development infra/vault
+      # writes this file every time Vault starts; elsewhere point VAULT_APPROLE_FILE to the
+      # file, or set SPRING_CLOUD_VAULT_APP_ROLE_ROLE_ID and SPRING_CLOUD_VAULT_APP_ROLE_SECRET_ID.
+      - "optional:file:${VAULT_APPROLE_FILE:../infra/.secrets/config-server.properties}"
+      - "vault://"
+
+  cloud:
+    vault:
+      uri: ${VAULT_URI:http://localhost:8200}
+      authentication: APPROLE
+      fail-fast: true
+      kv:
+        # Read only this server's path, not the shared secret/application.
+        default-context: ""
+
+    # Default backend: the banking-config repository on GitHub. For local development run
+    # with the "native" profile (application-native.yaml) to serve the folder on disk.
+    config:
+      server:
+        git:
+          uri: ${CONFIG_GIT_URI:https://github.com/Banking-Pivot/banking-config.git}
+          default-label: main
+          clone-on-start: true
+
+server:
+  port: 8888
