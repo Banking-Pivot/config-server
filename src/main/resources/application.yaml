@@ -33,3 +33,10 @@ spring:
 
 server:
   port: 8888
+
+# Registers with Eureka (discovery-server) like every other service. The Config Server cannot
+# read its own configuration from itself, so the registry address is here.
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}

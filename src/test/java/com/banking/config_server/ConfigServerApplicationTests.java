@@ -45,6 +45,8 @@ class ConfigServerApplicationTests {
     @DynamicPropertySource
     static void nativeRepository(DynamicPropertyRegistry registry) {
         registry.add("spring.cloud.config.server.native.search-locations", () -> REPOSITORY.toUri().toString());
+        // No registry in the tests: the server must not try to register with a real Eureka.
+        registry.add("eureka.client.enabled", () -> "false");
     }
 
     @Autowired
