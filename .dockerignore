@@ -1,0 +1,5 @@
+# The image only needs the jar built by Maven.
+*
+!target/
+target/*
+!target/config-server-*.jar

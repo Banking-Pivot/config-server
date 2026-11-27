@@ -58,6 +58,10 @@ jobs:
           name: config-server-jar
           path: target/config-server-*.jar
           if-no-files-found: error
+      # The image is built from that same jar, to prove the Dockerfile still works. It is not
+      # pushed to a registry.
+      - name: Build the container image
+        run: docker build -t config-server:${{ github.sha }} .
 
   deploy-dev:
     needs: build

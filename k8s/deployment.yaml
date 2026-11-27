@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: config-server
-          # Built with: ./mvnw spring-boot:build-image
+          # Built with: ./mvnw clean verify && docker build -t config-server:0.0.1-SNAPSHOT .
           image: config-server:0.0.1-SNAPSHOT
           imagePullPolicy: IfNotPresent
           ports:
