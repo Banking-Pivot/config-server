@@ -11,7 +11,10 @@ spring:
       # writes this file every time Vault starts; elsewhere point VAULT_APPROLE_FILE to the
       # file, or set SPRING_CLOUD_VAULT_APP_ROLE_ROLE_ID and SPRING_CLOUD_VAULT_APP_ROLE_SECRET_ID.
       - "optional:file:${VAULT_APPROLE_FILE:../infra/.secrets/config-server.properties}"
-      - "vault://"
+      # Optional only so the server can start with SPRING_CLOUD_VAULT_ENABLED=false, as its pod
+      # does (k8s/deployment.yaml): there it serves a mounted ConfigMap and needs no secret.
+      # With Vault enabled, fail-fast below still stops the startup if Vault does not answer.
+      - "optional:vault://"
 
   cloud:
     vault:

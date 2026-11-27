@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: config-server
+  labels:
+    app: config-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: config-server
+  template:
+    metadata:
+      labels:
+        app: config-server
+    spec:
+      containers:
+        - name: config-server
+          # Built with: ./mvnw spring-boot:build-image
+          image: config-server:0.0.1-SNAPSHOT
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8888
+          env:
+            # Serve the files of the mounted ConfigMap instead of cloning the git repository.
+            - name: SPRING_PROFILES_ACTIVE
+              value: "native"
+            - name: CONFIG_NATIVE_LOCATIONS
+              value: "file:/config/"
+            # The only secret of this server is the token of the git backend, which the pod
+            # does not use: it starts without Vault.
+            - name: SPRING_CLOUD_VAULT_ENABLED
+              value: "false"
+            # Service name of discovery-server in the same namespace.
+            - name: EUREKA_URL
+              value: "http://discovery-server:8761/eureka/"
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+          # Ready when it can serve configuration: this is the shared application.yml of the
+          # mounted ConfigMap (the server has no actuator).
+          readinessProbe:
+            httpGet:
+              path: /application/default
+              port: 8888
+            initialDelaySeconds: 15
+      volumes:
+        # ConfigMap generated from the banking-config repository (kubectl apply -k). Each key
+        # is one file: /config/application.yml, /config/account-service.yml, ...
+        - name: config
+          configMap:
+            name: banking-config
