@@ -1,10 +1,11 @@
-# Deployment and Service of the Config Server:
+# Deployment and Service of config-server:
 #
-#   kubectl kustomize k8s/     prints both objects, no cluster needed
-#   kubectl apply -k k8s/      creates or updates them in the cluster
+#   kubectl kustomize k8s/                 prints both objects, no cluster needed
+#   kubectl -n banking apply -k k8s/       creates or updates them in the cluster
 #
-# The ConfigMap they mount (banking-config) is generated in the banking-config repository
-# and has to exist first: kubectl apply -k ../banking-config
+# The ConfigMap it mounts (banking-config) is generated in the banking-config repository. The
+# whole system is applied from the infra repository:
+#   kubectl apply -k ../infra
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
