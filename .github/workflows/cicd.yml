@@ -1,0 +1,90 @@
+# Continuous delivery: main is built once and the same jar is promoted to dev and then to cert.
+# The cert environment can require reviewers (Settings > Environments); each environment holds
+# its own DEPLOY_TOKEN secret. Deployments are simulated by devops/deploy.sh.
+name: cicd
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cicd-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Build, test and check quality gates
+        run: |
+          chmod +x mvnw
+          ./mvnw -B -ntp clean verify
+      # Runs only when the repository variable SONAR_HOST_URL points to a SonarQube server the
+      # runner can reach. The token is the secret SONAR_TOKEN, never a value in this file.
+      - name: SonarQube analysis
+        if: ${{ vars.SONAR_HOST_URL != '' }}
+        env:
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: >-
+          ./mvnw -B -ntp sonar:sonar
+          -Dsonar.projectKey=config-server
+          -Dsonar.projectName=config-server
+      - name: Upload test and coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: config-server-reports
+          path: |
+            target/surefire-reports/
+            target/site/jacoco/
+          if-no-files-found: ignore
+      - name: Upload the jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: config-server-jar
+          path: target/config-server-*.jar
+          if-no-files-found: error
+
+  deploy-dev:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: config-server-jar
+          path: dist
+      - name: Deploy to dev (simulated)
+        env:
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+        run: bash devops/deploy.sh dev dist/config-server-*.jar
+
+  deploy-cert:
+    needs: deploy-dev
+    runs-on: ubuntu-latest
+    environment: cert
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: config-server-jar
+          path: dist
+      - name: Deploy to cert (simulated)
+        env:
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+        run: bash devops/deploy.sh cert dist/config-server-*.jar

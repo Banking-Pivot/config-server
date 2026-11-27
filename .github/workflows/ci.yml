@@ -1,0 +1,44 @@
+# Continuous integration: every push to a feature branch and every pull request to main is
+# compiled, tested (unit and integration, with Testcontainers) and checked against the Checkstyle
+# and JaCoCo gates of the pom. Tests are never skipped here: without them JaCoCo has no data and
+# the coverage gate would pass empty.
+name: ci
+
+on:
+  push:
+    branches: ['feature/**']
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Build, test and check quality gates
+        run: |
+          chmod +x mvnw
+          ./mvnw -B -ntp clean verify
+      - name: Upload test and coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: config-server-reports
+          path: |
+            target/surefire-reports/
+            target/site/jacoco/
+            target/checkstyle-result.xml
+          if-no-files-found: ignore
